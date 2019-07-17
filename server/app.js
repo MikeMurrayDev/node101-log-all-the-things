@@ -1,20 +1,54 @@
 const express = require('express');
 const fs = require('fs');
+const csv=require('csvtojson');
 const app = express();
 
-app.use((req, res, next) => {
-// write your logging code here
+var newEntry = [];
 
+app.use((req, res, next) => {
+    var getUserAgent = req.get('User-Agent');
+    var userAgent = getUserAgent;
+    newEntry.push(userAgent);
+
+    var dateTime = new Date().toISOString();
+    newEntry.push(dateTime);
+
+    var httpMethod = req.method;
+    newEntry.push(httpMethod);
+
+    var resource = req.url;
+    newEntry.push(resource);
+
+    var version = req.httpVersion;
+    newEntry.push('HTTP/' + version);
+
+    var status = res.statusCode;
+    newEntry.push(status);
+
+    var newJoin = newEntry.join(',');
+    var otherNew = `\n${newJoin}`
+
+    console.log(otherNew);
+
+    fs.appendFile('tmp/log.csv', otherNew, (err) => {
+        if (err) throw err;
+    });
+
+    newEntry = [];
+    next();
 });
 
 app.get('/', (req, res) => {
-// write your code to respond "ok" here
-
+    res.status(200).send('Okay');
 });
 
 app.get('/logs', (req, res) => {
-// write your code to return a json object containing the log data here
-
+    const csvFilePath= 'tmp/log.csv';
+    csv()
+        .fromFile(csvFilePath)
+        .then((jsonObj)=>{
+            res.status(200).send(jsonObj);
+        })
 });
 
 module.exports = app;
